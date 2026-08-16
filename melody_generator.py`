@@ -1,0 +1,95 @@
+
+
+### 1. `melody_generator.py` (Python)
+
+```python
+# melody_generator.py — Python версия
+
+import random
+import time
+import platform
+import argparse
+import sys
+
+# Определение нот и частот (C4 до C6)
+NOTES = {
+    'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
+    'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
+    'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+    'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25,
+    'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99,
+    'G#5': 830.61, 'A5': 880.00, 'A#5': 932.33, 'B5': 987.77,
+    'C6': 1046.50
+}
+
+DURATIONS = {'1/16': 0.0625, '1/8': 0.125, '1/4': 0.25, '1/2': 0.5, '1': 1.0}
+
+class MelodyGenerator:
+    def __init__(self, num_notes=8, tempo=120, range_start='C4', range_end='C6'):
+        self.num_notes = num_notes
+        self.tempo = tempo
+        self.notes_pool = []
+        for note in NOTES:
+            if range_start <= note <= range_end:
+                self.notes_pool.append(note)
+        if not self.notes_pool:
+            self.notes_pool = list(NOTES.keys())
+        self.melody = []
+
+    def generate(self):
+        self.melody = []
+        for _ in range(self.num_notes):
+            note = random.choice(self.notes_pool)
+            duration = random.choice(list(DURATIONS.keys()))
+            self.melody.append((note, duration))
+        return self.melody
+
+    def play(self):
+        """Воспроизводит мелодию через beep."""
+        system = platform.system()
+        for note, dur in self.melody:
+            freq = NOTES[note]
+            duration_ms = DURATIONS[dur] * (60 / self.tempo) * 1000
+            if system == 'Windows':
+                import winsound
+                winsound.Beep(int(freq), int(duration_ms))
+            else:
+                import os
+                os.system(f'beep -f {int(freq)} -l {int(duration_ms)} 2>/dev/null')
+            time.sleep(duration_ms / 1000 * 0.1)  # небольшая пауза между нотами
+
+    def save(self, filename='melody.txt'):
+        with open(filename, 'w') as f:
+            f.write("Note\tFreq (Hz)\tDuration\n")
+            for note, dur in self.melody:
+                f.write(f"{note}\t{NOTES[note]:.2f}\t{dur}\n")
+        print(f"💾 Сохранено: {filename}")
+
+def main():
+    parser = argparse.ArgumentParser(description='Random Melody Generator')
+    parser.add_argument('--notes', '-n', type=int, default=8, help='Количество нот')
+    parser.add_argument('--tempo', '-t', type=int, default=120, help='Темп (BPM)')
+    parser.add_argument('--range', '-r', default='C4-C6', help='Диапазон (например, C4-C6)')
+    parser.add_argument('--output', '-o', default='melody.txt', help='Файл для сохранения')
+    args = parser.parse_args()
+
+    range_parts = args.range.split('-')
+    if len(range_parts) == 2:
+        start, end = range_parts[0].strip(), range_parts[1].strip()
+    else:
+        start, end = 'C4', 'C6'
+
+    gen = MelodyGenerator(args.notes, args.tempo, start, end)
+    melody = gen.generate()
+    print(f"🎵 Random Melody Generator (Python)")
+    print(f"Параметры: {args.notes} нот, диапазон {start}-{end}, темп {args.tempo} BPM\n")
+
+    print("Сгенерированная мелодия:")
+    for note, dur in melody:
+        print(f"  {note} ({NOTES[note]:.2f} Гц) {dur}")
+    print("\nВоспроизведение...")
+    gen.play()
+    gen.save(args.output)
+
+if __name__ == "__main__":
+    main()
